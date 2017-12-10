@@ -48,6 +48,11 @@ endif
 
 LIBS	+= -lrem -lm
 
+ifneq ($(LIBRE_PATH),)
+LIBS    += -L$(LIBRE_PATH)
+endif
+LIBS    += -lre
+
 
 include src/srcs.mk
 
