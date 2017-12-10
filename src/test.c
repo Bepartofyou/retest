@@ -14,7 +14,11 @@
 #endif
 #include <string.h>
 #include <stdlib.h>
+#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+#elif !defined(__unix)
+#define __unix
 #include <sys/time.h>
+#endif
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
 #endif
@@ -36,6 +40,11 @@ struct test {
 
 #define TEST(a) {a, #a}
 
+#ifndef __unix
+static const struct test tests[] = {
+	TEST(test_list),
+};
+#else
 static const struct test tests[] = {
 	TEST(test_aes),
 	TEST(test_aubuf),
@@ -166,6 +175,7 @@ static const struct test tests[] = {
 	TEST(test_dtls_turn),
 #endif
 };
+#endif
 
 
 static const struct test *find_test(const char *name)
@@ -335,21 +345,41 @@ static int test_unit(const char *name, bool verbose)
 	return err;
 }
 
+/* get system time */
+static inline void itimeofday(long *sec, long *usec)
+{
+#if defined(__unix)
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	if (sec) *sec = time.tv_sec;
+	if (usec) *usec = time.tv_usec;
+#else
+	static long mode = 0, addsec = 0;
+	BOOL retval;
+	static uint64_t freq = 1;
+	uint64_t qpc;
+	if (mode == 0) {
+		retval = QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+		freq = (freq == 0) ? 1 : freq;
+		retval = QueryPerformanceCounter((LARGE_INTEGER*)&qpc);
+		addsec = (long)time(NULL);
+		addsec = addsec - (long)((qpc / freq) & 0x7fffffff);
+		mode = 1;
+	}
+	retval = QueryPerformanceCounter((LARGE_INTEGER*)&qpc);
+	retval = retval * 2;
+	if (sec) *sec = (long)(qpc / freq) + addsec;
+	if (usec) *usec = (long)((qpc % freq) * 1000000 / freq);
+#endif
+}
 
 static uint64_t tmr_microseconds(void)
 {
-	struct timeval now;
-	uint64_t usec;
-
-	if (0 != gettimeofday(&now, NULL)) {
-		DEBUG_WARNING("jiffies: gettimeofday() failed (%m)\n", errno);
-		return 0;
-	}
-
-	usec  = (uint64_t)now.tv_sec * (uint64_t)1000000;
-	usec += now.tv_usec;
-
-	return usec;
+	long s, u;
+	uint64_t value;
+	itimeofday(&s, &u);
+	value = ((uint64_t)s) * 1000000 + u;
+	return value;
 }
 
 
