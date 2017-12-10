@@ -349,10 +349,11 @@ static int test_unit(const char *name, bool verbose)
 static inline void itimeofday(long *sec, long *usec)
 {
 #if defined(__unix)
-	struct timeval time_;
-	gettimeofday(&time_, NULL);
-	if (sec) *sec = time_.tv_sec;
-	if (usec) *usec = time_.tv_usec;
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	if (sec) *sec = time.tv_sec;
+	if (usec) *usec = time.tv_usec;
+	(void)time;
 #else
 	static long mode = 0, addsec = 0;
 	BOOL retval;
