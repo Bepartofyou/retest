@@ -17,8 +17,11 @@
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
 #elif !defined(__unix)
 #define __unix
-#include <sys/time.h>
 #endif
+#ifdef __unix
+#include <sys/time.h>
+#endif // __unix
+
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
 #endif
@@ -353,7 +356,6 @@ static inline void itimeofday(long *sec, long *usec)
 	gettimeofday(&time, NULL);
 	if (sec) *sec = time.tv_sec;
 	if (usec) *usec = time.tv_usec;
-	(void)time;
 #else
 	static long mode = 0, addsec = 0;
 	BOOL retval;
